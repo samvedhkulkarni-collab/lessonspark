@@ -50,9 +50,10 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 16px 30px
 <header>
   <h1>✨ LessonSpark</h1>
   <p>Turn any chapter into a bright, ready-to-teach PowerPoint in minutes. Review, edit, and upload to your ICT portal.</p>
-  <div id="userBar" style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:14px"><span id="hello" style="color:#fff;font-weight:600"></span><div id="gbtn"></div><button id="signOut" style="display:none;padding:6px 12px;background:#fff;color:#5f3dc4">Sign out</button></div>
+  <div id="userBar" style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:14px"><button id="settingsBtn" aria-expanded="false" aria-controls="settingsPanel" style="padding:6px 12px;background:#fff;color:#5f3dc4">⚙️ Settings</button><span id="hello" style="color:#fff;font-weight:600"></span><div id="gbtn"></div><button id="signOut" style="display:none;padding:6px 12px;background:#fff;color:#5f3dc4">Sign out</button></div>
 </header>
 <main>
+  <div id="settingsPanel">
   <section class="card" aria-labelledby="h-check">
     <h2 id="h-check">Setup check</h2>
     <ul id="chk" style="list-style:none;padding:0;margin:0"></ul>
@@ -67,12 +68,14 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 16px 30px
     </ol>
     <div class="grid">
       <div><label for="key">Your Gemini API key</label><input id="key" type="password" autocomplete="off" placeholder="Paste key here"></div>
-      <div><label for="model">Model name</label><input id="model" type="text" value="gemini-2.5-flash"></div>
+      <div><label for="model">Model name</label><input id="model" type="text" value="gemini-3.5-flash" list="modelList"><datalist id="modelList"></datalist></div>
     </div>
-    <div class="row"><button id="keySave">Save key</button><button class="ghost" id="keyTest">Test key</button><button class="ghost" id="keyDel">Remove key</button></div>
+    <div class="row"><button id="keySave">Save key</button><button class="ghost" id="keyTest">Test key</button><button class="ghost" id="keyDel">Remove key</button><button class="ghost" id="keyModels">Find models</button></div>
     <div id="keyMsg" role="status" aria-live="polite" class="note" style="margin-top:8px"></div>
     <p class="note">The key is saved only in this browser on this device, so don’t use a shared computer. The free Gemini tier may use submitted content to improve Google’s products, so never enter student names, photos, or marks. If the model name stops working, update it from the list in AI Studio.</p>
+    <div class="row"><button class="ghost" id="settingsClose">Close settings</button></div>
   </section>
+  </div>
   <section class="card" aria-labelledby="h-setup">
     <h2 id="h-setup">1. Tell us about your lesson</h2>
     <div class="grid">
@@ -136,14 +139,16 @@ async function loadLib(){
   }
   return false;
 }
+function setSettings(open,quiet){$('settingsPanel').classList.toggle('hide',!open);$('settingsBtn').setAttribute('aria-expanded',open?'true':'false');if(open&&!quiet)$('settingsPanel').scrollIntoView({behavior:'smooth'})}
 function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
 async function runChecks(){
   await loadLib();
   aiKey=aiKey||lsGet('ls_key');
-  if(lsGet('ls_model'))$('model').value=lsGet('ls_model');
+  if(lsGet('ls_model')&&lsGet('ls_model')!=='gemini-2.5-flash')$('model').value=lsGet('ls_model');
   $('photoBox').classList.remove('hide');
+  if(!window._init){window._init=1;setSettings(!aiKey||typeof PptxGenJS==='undefined',true)}
   const items=[
     [typeof PptxGenJS!=='undefined','PowerPoint maker loaded','Both sources failed. School or office Wi-Fi often blocks them: try mobile data, then press Re-check.'],
     [!!aiKey,'AI key saved','Follow the AI setup steps below to add your free Gemini key. Without it, only a simple outline is made from your text.'],
@@ -153,7 +158,7 @@ async function runChecks(){
   items.forEach(([ok,name,fix])=>{const li=document.createElement('li');li.style.margin='6px 0';li.textContent=(ok?'✅ ':'⚠️ ')+name+(ok?'':' – '+fix);ul.appendChild(li)});
 }
 async function gemini(prompt,files){
-  const model=$('model').value.trim()||'gemini-2.5-flash',parts=[{text:prompt}];
+  const model=$('model').value.trim()||'gemini-3.5-flash',parts=[{text:prompt}];
   for(const f of files){const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});parts.push({inline_data:{mime_type:f.type||'image/jpeg',data:b64}})}
   const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':aiKey},body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:'application/json'}})});
   if(!resp.ok){const e=new Error('HTTP '+resp.status);e.code=resp.status===429?'rate_limited':(resp.status===400||resp.status===403)?'bad_key':'http_'+resp.status;throw e}
@@ -230,7 +235,7 @@ $('gen').onclick=async()=>{
     $('resultCard').classList.remove('hide');$('resultCard').scrollIntoView({behavior:'smooth'});
   }catch(e){
     slides=[...localDraft(text,chapter),...extras()];
-    if(slides.length){render();$('resultCard').classList.remove('hide');setStatus('AI could not run'+(e&&(e.code||e.message)?' ('+(e.code||e.message)+')':'')+(e&&e.code==='bad_key'?' – check your key and model name in AI setup.':e&&e.code==='rate_limited'?' – the free limit is reached. Wait a minute or try tomorrow.':'. Try fewer slides or shorter text.')+' A simple outline was made instead; you can edit every slide.')}
+    if(slides.length){render();$('resultCard').classList.remove('hide');setStatus('AI could not run'+(e&&(e.code||e.message)?' ('+(e.code||e.message)+')':'')+(e&&e.code==='http_404'?' – the model name was not found. In AI setup, press Find models.':e&&e.code==='bad_key'?' – check your key and model name in AI setup.':e&&e.code==='rate_limited'?' – the free limit is reached. Wait a minute or try tomorrow.':'. Try fewer slides or shorter text.')+' A simple outline was made instead; you can edit every slide.')}
     else setStatus('Sorry, that did not work. Please add more lesson text and try again.');
   }
   $('gen').disabled=false;
@@ -267,14 +272,16 @@ $('exp').onclick=async()=>{
   });
   try{
     const blob=await p.write({outputType:'blob'});
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    const url=URL.createObjectURL(new Blob([blob],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'})),a=document.createElement('a');
     a.href=url;a.download=(($('chapter').value||'lesson').replace(/[^\w-]+/g,'_'))+'.pptx';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
     st.textContent='Downloaded! Upload the file to your ICT portal.';
   }catch(e){st.textContent='Could not create the file. Please try again.'}
 };
 $('keySave').onclick=()=>{const k=$('key').value.trim();if(!k){$('keyMsg').textContent='Paste your key first.';return}aiKey=k;const ok=lsSet('ls_key',k);lsSet('ls_model',$('model').value.trim());$('key').value='';$('keyMsg').textContent=ok?'Key saved on this device.':'This browser blocked saving, so the key works for this visit only.';runChecks()};
-$('keyTest').onclick=async()=>{if(!aiKey){$('keyMsg').textContent='Save a key first.';return}$('keyMsg').textContent='Testing…';try{await gemini('Reply with this JSON only: {"ok":true}',[]);$('keyMsg').textContent='✅ Key works.'}catch(e){$('keyMsg').textContent='⚠️ '+(e.code==='bad_key'?'Key or model name not accepted. Check both.':e.code==='rate_limited'?'Key works, but the free limit is reached for now.':e.code==='http_404'?'Model name not found. Check it in AI Studio.':'Could not reach Gemini ('+(e.message||'error')+'). Your network may block it.')}};
+$('keyTest').onclick=async()=>{if(!aiKey){$('keyMsg').textContent='Save a key first.';return}$('keyMsg').textContent='Testing…';try{await gemini('Reply with this JSON only: {"ok":true}',[]);$('keyMsg').textContent='✅ Key works. Closing settings…';setTimeout(()=>setSettings(false,true),1500)}catch(e){$('keyMsg').textContent='⚠️ '+(e.code==='bad_key'?'Key or model name not accepted. Check both.':e.code==='rate_limited'?'Key works, but the free limit is reached for now.':e.code==='http_404'?'Model name not found. Press Find models.':'Could not reach Gemini ('+(e.message||'error')+'). Your network may block it.')}};
+$('settingsBtn').onclick=()=>setSettings($('settingsPanel').classList.contains('hide'));
+$('settingsClose').onclick=()=>setSettings(false);
 $('keyDel').onclick=()=>{aiKey='';lsDel('ls_key');$('keyMsg').textContent='Key removed.';runChecks()};
 const OWNER='Your Name',GOOGLE_CLIENT_ID='';
 $('copy').textContent='© '+new Date().getFullYear()+' '+OWNER+'. All rights reserved.';
@@ -291,6 +298,7 @@ $('signOut').onclick=()=>{lsDel('ls_user');try{google.accounts.id.disableAutoSel
   sc.onerror=()=>{if(!u)$('hello').textContent='Google sign-in could not load on this network'};
   document.head.appendChild(sc);
 })();
+$('keyModels').onclick=async()=>{if(!aiKey){$('keyMsg').textContent='Save a key first.';return}$('keyMsg').textContent='Looking up models…';try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100',{headers:{'x-goog-api-key':aiKey}});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();const names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')&&/flash/.test(m.name)&&!/tts|live|image|audio|robotics|exp/.test(m.name)).map(m=>m.name.replace('models/','')).sort().reverse();if(!names.length)throw new Error('none found');$('modelList').innerHTML='';names.forEach(n=>{const o=document.createElement('option');o.value=n;$('modelList').appendChild(o)});$('model').value=names.find(n=>/^gemini-[\d.]+-flash$/.test(n))||names[0];lsSet('ls_model',$('model').value);$('keyMsg').textContent='Found '+names.length+' models. Selected '+$('model').value+'. Now press Test key.'}catch(e){$('keyMsg').textContent='Could not list models ('+(e.message||'error')+'). Check the key and your network.'}};
 </script>
 </body>
 </html>
