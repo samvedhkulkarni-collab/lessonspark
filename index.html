@@ -89,13 +89,20 @@ footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 16px 30px
     <div style="margin-top:14px"><label for="text">Paste chapter text (your own words or the lesson content)</label><textarea id="text" placeholder="Paste the lesson text here…"></textarea></div>
     <div style="margin-top:14px"><label for="pdf">Textbook PDF (optional, saved on this device)</label><input id="pdf" type="file" accept="application/pdf"><p class="note" id="pdfInfo">No PDF saved.</p><button class="ghost" id="pdfClear" type="button">Remove saved PDF</button><p class="note">While a PDF is saved, it is used for every chapter number you enter. If you upload page photos for a lesson, the photos are used instead.</p></div>
     <div id="pgBox" class="hide grid" style="margin-top:10px"><div><label for="pgFrom">Chapter first page</label><input id="pgFrom" type="number" min="1"></div><div><label for="pgTo">Chapter last page</label><input id="pgTo" type="number" min="1"></div></div>
-    <div id="photoBox" class="hide" style="margin-top:14px"><label for="photos">Or upload chapter page photos</label><input id="photos" type="file" accept="image/*" multiple><p class="note">Please avoid photos showing student names, faces, or marks.</p></div>
+    <div id="photoBox" class="hide" style="margin-top:14px"><span style="font-weight:600;display:block;margin-bottom:6px">Or add chapter page photos</span>
+      <div class="row" style="margin-top:0"><button type="button" class="ghost" id="pickBtn">🖼️ Choose photos</button><button type="button" class="ghost" id="camBtn">📷 Take photo</button><button type="button" class="ghost" id="photoClear">Clear photos</button></div>
+      <input id="photos" type="file" accept="image/*" multiple class="hide" aria-label="Choose photos from your device">
+      <input id="camera" type="file" accept="image/*" capture="environment" class="hide" aria-label="Take a photo with the camera">
+      <div id="thumbs" class="row" aria-live="polite"></div>
+      <p class="note">Up to 6 photos. Take one photo at a time and each is added to the list. Please avoid photos showing student names, faces, or marks.</p></div>
     <fieldset style="border:0;padding:0;margin:14px 0 0"><legend style="font-weight:600">Include</legend>
       <div class="checks">
         <label><input type="checkbox" id="oAct" checked> 🎯 Activity</label>
         <label><input type="checkbox" id="oQuiz" checked> ❓ Quick quiz</label>
         <label><input type="checkbox" id="oHome" checked> 📚 Homework</label>
         <label><input type="checkbox" id="oSum" checked> 📝 Summary</label>
+        <label><input type="checkbox" id="oQA" checked> 💬 Questions &amp; answers</label>
+        <label>How many <input type="number" id="qaN" min="3" max="10" value="5" style="width:64px;padding:4px 6px" aria-label="Number of questions"></label>
       </div>
     </fieldset>
     <div class="row"><button id="gen">✨ Create my slides</button><span class="note">Works best with a few paragraphs of text.</span></div>
@@ -157,13 +164,22 @@ async function runChecks(){
   const ul=$('chk');ul.textContent='';
   items.forEach(([ok,name,fix])=>{const li=document.createElement('li');li.style.margin='6px 0';li.textContent=(ok?'✅ ':'⚠️ ')+name+(ok?'':' – '+fix);ul.appendChild(li)});
 }
-async function gemini(prompt,files){
+const SLIDES_SCHEMA={type:'OBJECT',properties:{slides:{type:'ARRAY',items:{type:'OBJECT',properties:{title:{type:'STRING'},bullets:{type:'ARRAY',items:{type:'STRING'}}},required:['title','bullets']}}},required:['slides']};
+function parseJson(t){
+  t=t.replace(/```json|```/g,'').trim();
+  try{return JSON.parse(t)}catch(e){}
+  const i=t.lastIndexOf('}');
+  if(i>0){try{return JSON.parse(t.slice(0,i+1)+']}')}catch(e){}try{return JSON.parse(t.slice(0,i+1)+'}')}catch(e){}}
+  const err=new Error('bad JSON');err.code='bad_json';throw err;
+}
+function toB64(f){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(f);img.onload=()=>{const k=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);res(c.toDataURL('image/jpeg',0.8).split(',')[1])};img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error('image'))};img.src=u})}
+async function gemini(prompt,files,schema){
   const model=$('model').value.trim()||'gemini-3.5-flash',parts=[{text:prompt}];
-  for(const f of files){const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});parts.push({inline_data:{mime_type:f.type||'image/jpeg',data:b64}})}
-  const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':aiKey},body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:'application/json'}})});
+  for(const f of files){parts.push({inline_data:{mime_type:'image/jpeg',data:await toB64(f)}})}
+  const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':aiKey},body:JSON.stringify({contents:[{parts}],generationConfig:Object.assign({responseMimeType:'application/json',maxOutputTokens:16384},schema?{responseSchema:schema}:{})})});
   if(!resp.ok){const e=new Error('HTTP '+resp.status);e.code=resp.status===429?'rate_limited':(resp.status===400||resp.status===403)?'bad_key':'http_'+resp.status;throw e}
   const j=await resp.json(),ps=((((j.candidates||[])[0]||{}).content||{}).parts)||[];
-  return JSON.parse(ps.map(p=>p.text||'').join('').replace(/```json|```/g,'').trim());
+  return parseJson(ps.map(p=>p.text||'').join(''));
 }
 runChecks();$('recheck').onclick=runChecks;
 let pdfPages=[];
@@ -207,12 +223,13 @@ function extras(){
   if($('oAct').checked)e.push({title:'Activity',bullets:['Work in pairs for 5 minutes','Discuss one example from daily life','Share your answer with the class']});
   if($('oQuiz').checked)e.push({title:'Quick Quiz',bullets:['Q1. (add question) – Answer: ','Q2. (add question) – Answer: ','Q3. (add question) – Answer: ']});
   if($('oHome').checked)e.push({title:'Homework',bullets:['Write 5 lines about today’s lesson','Draw and label one diagram']});
+  if($('oQA').checked){const n=Math.min(10,Math.max(3,+$('qaN').value||5)),q=[],a=[];for(let i=1;i<=n;i++){q.push('Q'+i+'. (add question)');a.push('A'+i+'. (add answer)')}e.push({title:'Questions',bullets:q},{title:'Answers',bullets:a})}
   if($('oSum').checked)e.push({title:'Summary',bullets:['Recap the key ideas','Ask: What did we learn today?']});
   return e;
 }
 
 $('gen').onclick=async()=>{
-  let chapter=$('chapter').value.trim(),text=$('text').value.trim(),files=[...($('photos').files||[])];
+  let chapter=$('chapter').value.trim(),text=$('text').value.trim(),files=photoFiles.slice();
   const chNum=$('chNum').value.trim();
   if(!chNum&&!files.length){setStatus('Please enter the chapter number, or upload photos of the chapter pages.');$('chNum').focus();return}
   if(!files.length&&!text&&pdfPages.length){
@@ -225,9 +242,10 @@ $('gen').onclick=async()=>{
   const n=Math.min(15,Math.max(5,+$('slidesN').value||8));
   try{
     if(aiKey){
-      const want=['Activity','Quick Quiz (3 questions with answers)','Homework','Summary'].filter((_,i)=>[$('oAct'),$('oQuiz'),$('oHome'),$('oSum')][i].checked);
+      const nq=Math.min(10,Math.max(3,+$('qaN').value||5));
+      const want=['Activity','Quick Quiz (3 questions with answers)','Homework','Summary','Questions slide ('+nq+' numbered questions on this chapter, short and clear)','Answers slide (the matching numbered answers, in the same order, one short line each)'].filter((_,i)=>[$('oAct'),$('oQuiz'),$('oHome'),$('oSum'),$('oQA'),$('oQA')][i].checked);
       const prompt=`You are an experienced school teacher in India. Create about ${n} lesson slides in English for ${$('board').value}, Grade ${$('grade').value}, ${$('subject').value}, chapter ${chNum?chNum+' ':''}"${chapter}". Use simple, age-appropriate language and your own wording; never copy long passages. Slide order: Learning Objectives, then concept slides, then these: ${want.join(', ')||'none'}. Each slide has a short title and 3-5 short bullets (max 15 words each). Base the content on the lesson material below${files.length?' and the attached page photos':''}.\n${text||files.length?'Lesson material:\n"""'+text.slice(0,6000)+'"""':'No textbook text was provided. Use the standard '+$('board').value+' curriculum for this grade, subject and chapter. If you are not sure what this chapter covers, say so on the first slide instead of guessing.'}\nReturn ONLY JSON: {"slides":[{"title":"...","bullets":["..."]}]}`;
-      let r;try{r=await gemini(prompt,files.slice(0,6))}catch(e1){if(files.length&&e1&&e1.code!=='rate_limited'&&e1.code!=='bad_key'){r=await gemini(prompt,[])}else throw e1}
+      let r;try{r=await gemini(prompt,files.slice(0,6),SLIDES_SCHEMA)}catch(e1){if(e1&&e1.code==='bad_json'){r=await gemini(prompt,files.slice(0,6),SLIDES_SCHEMA)}else if(files.length&&e1&&e1.code!=='rate_limited'&&e1.code!=='bad_key'){r=await gemini(prompt,[],SLIDES_SCHEMA)}else throw e1}
       slides=(r.slides||[]).map(s=>({title:String(s.title||''),bullets:(s.bullets||[]).map(String)}));
     }else{slides=[...localDraft(text,chapter),...extras()]}
     if(!slides.length)throw new Error('empty');
@@ -235,7 +253,7 @@ $('gen').onclick=async()=>{
     $('resultCard').classList.remove('hide');$('resultCard').scrollIntoView({behavior:'smooth'});
   }catch(e){
     slides=[...localDraft(text,chapter),...extras()];
-    if(slides.length){render();$('resultCard').classList.remove('hide');setStatus('AI could not run'+(e&&(e.code||e.message)?' ('+(e.code||e.message)+')':'')+(e&&e.code==='http_404'?' – the model name was not found. In AI setup, press Find models.':e&&e.code==='bad_key'?' – check your key and model name in AI setup.':e&&e.code==='rate_limited'?' – the free limit is reached. Wait a minute or try tomorrow.':'. Try fewer slides or shorter text.')+' A simple outline was made instead; you can edit every slide.')}
+    if(slides.length){render();$('resultCard').classList.remove('hide');setStatus('AI could not run'+(e&&(e.code||e.message)?' ('+(e.code||e.message)+')':'')+(e&&e.code==='bad_json'?' – the AI reply was cut off or malformed. Press Create again, or try fewer slides.':e&&e.code==='http_404'?' – the model name was not found. In AI setup, press Find models.':e&&e.code==='bad_key'?' – check your key and model name in AI setup.':e&&e.code==='rate_limited'?' – the free limit is reached. Wait a minute or try tomorrow.':'. Try fewer slides or shorter text.')+' A simple outline was made instead; you can edit every slide.')}
     else setStatus('Sorry, that did not work. Please add more lesson text and try again.');
   }
   $('gen').disabled=false;
@@ -268,7 +286,7 @@ $('exp').onclick=async()=>{
     const c=COLORS[i%COLORS.length].slice(1),sl=p.addSlide();sl.background={color:'FFF8EE'};
     sl.addShape(p.ShapeType.rect,{x:0,y:0,w:10,h:1.1,fill:{color:c}});
     sl.addText(s.title||'Slide',{x:.5,y:.1,w:9,h:.9,fontSize:30,bold:true,color:'FFFFFF',fontFace:'Arial'});
-    sl.addText(s.bullets.map(b=>({text:b,options:{bullet:true,breakLine:true}})),{x:.6,y:1.4,w:8.8,h:3.8,fontSize:22,color:'2B2D42',fontFace:'Arial',valign:'top',paraSpaceAfter:10});
+    sl.addText(s.bullets.map(b=>({text:b,options:{bullet:true,breakLine:true}})),{x:.6,y:1.4,w:8.8,h:3.8,fontSize:22,color:'2B2D42',fontFace:'Arial',valign:'top',paraSpaceAfter:10,fit:'shrink'});
   });
   try{
     const blob=await p.write({outputType:'blob'});
@@ -299,6 +317,14 @@ $('signOut').onclick=()=>{lsDel('ls_user');try{google.accounts.id.disableAutoSel
   document.head.appendChild(sc);
 })();
 $('keyModels').onclick=async()=>{if(!aiKey){$('keyMsg').textContent='Save a key first.';return}$('keyMsg').textContent='Looking up models…';try{const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100',{headers:{'x-goog-api-key':aiKey}});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();const names=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')&&/flash/.test(m.name)&&!/tts|live|image|audio|robotics|exp/.test(m.name)).map(m=>m.name.replace('models/','')).sort().reverse();if(!names.length)throw new Error('none found');$('modelList').innerHTML='';names.forEach(n=>{const o=document.createElement('option');o.value=n;$('modelList').appendChild(o)});$('model').value=names.find(n=>/^gemini-[\d.]+-flash$/.test(n))||names[0];lsSet('ls_model',$('model').value);$('keyMsg').textContent='Found '+names.length+' models. Selected '+$('model').value+'. Now press Test key.'}catch(e){$('keyMsg').textContent='Could not list models ('+(e.message||'error')+'). Check the key and your network.'}};
+let photoFiles=[];
+function drawThumbs(){const t=$('thumbs');t.textContent='';photoFiles.forEach((f,i)=>{const w=document.createElement('div');w.style.position='relative';const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='Page photo '+(i+1);im.style.cssText='height:64px;border-radius:8px;border:2px solid var(--line)';const b=document.createElement('button');b.type='button';b.textContent='✕';b.setAttribute('aria-label','Remove photo '+(i+1));b.style.cssText='position:absolute;top:-6px;right:-6px;padding:0 6px;border-radius:999px;background:#c92a2a';b.onclick=()=>{photoFiles.splice(i,1);drawThumbs()};w.append(im,b);t.appendChild(w)})}
+function addPhotos(list){photoFiles=photoFiles.concat([...list]).slice(0,6);drawThumbs()}
+$('photos').onchange=e=>{addPhotos(e.target.files);e.target.value=''};
+$('camera').onchange=e=>{addPhotos(e.target.files);e.target.value=''};
+$('pickBtn').onclick=()=>$('photos').click();
+$('camBtn').onclick=()=>$('camera').click();
+$('photoClear').onclick=()=>{photoFiles=[];drawThumbs()};
 </script>
 </body>
 </html>
