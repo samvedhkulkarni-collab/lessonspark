@@ -1,0 +1,13 @@
+LessonSpark
+Copyright (c) 2026 Shankar Hannr. All rights reserved.
+
+No permission is granted to copy, modify, distribute, sell, or reverse-engineer this
+software, except as allowed by law or by written permission of the copyright holder.
+Viewing the source and forking it on GitHub is allowed only as far as GitHub's Terms of
+Service require.
+
+Third-party components (loaded from public CDNs, not included in this repository):
+- PptxGenJS, MIT License
+- PDF.js by Mozilla, Apache License 2.0
+These remain under their own licenses.
+

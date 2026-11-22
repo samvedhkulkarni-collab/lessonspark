@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LessonSpark – Lesson PPT Maker for Teachers</title>
+<meta name="description" content="Create colourful lesson PowerPoints from a textbook chapter.">
+<style>
+:root{--bg:#fff8ee;--card:#ffffff;--ink:#2b2d42;--muted:#5c5f77;--line:#f0e2cc;--brand:#5f3dc4;--brand2:#d6336c;--ok:#2b8a3e;--shadow:0 6px 18px rgba(95,61,196,.12);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1730;--card:#262040;--ink:#f4f0ff;--muted:#c3badf;--line:#3b335c;--brand:#b197fc;--brand2:#f783ac;--ok:#69db7c;--shadow:none;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1730;--card:#262040;--ink:#f4f0ff;--muted:#c3badf;--line:#3b335c;--brand:#b197fc;--brand2:#f783ac;--ok:#69db7c;--shadow:none;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+header{background:linear-gradient(120deg,#5f3dc4,#d6336c 60%,#e8590c);color:#fff;padding:28px 16px 36px;text-align:center}
+header h1{margin:0;font-size:clamp(1.8rem,5vw,2.6rem)}
+header p{margin:6px auto 0;max-width:640px;font-size:1.05rem}
+main{max-width:1000px;margin:-22px auto 40px;padding:0 14px}
+section.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow)}
+h2{margin:0 0 12px;font-size:1.3rem;color:var(--brand)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+label{display:block;font-weight:600;margin-bottom:4px}
+select,input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:120px;resize:vertical}
+:focus-visible{outline:3px solid var(--brand2);outline-offset:2px}
+.checks{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.checks label{display:flex;align-items:center;gap:8px;font-weight:500;background:var(--bg);border:2px solid var(--line);padding:8px 12px;border-radius:999px;margin:0;cursor:pointer}
+.checks input{width:18px;height:18px;accent-color:var(--brand)}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 20px;cursor:pointer;color:#fff;background:linear-gradient(120deg,#5f3dc4,#d6336c)}
+button.alt{background:#2b8a3e}
+button.ghost{background:transparent;color:var(--brand);border:2px solid var(--brand)}
+button:disabled{opacity:.6;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+#status{margin-top:10px;font-weight:600;min-height:1.5em}
+.note{font-size:.9rem;color:var(--muted)}
+.slides{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.slide{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow)}
+.slide .top{color:#fff;padding:10px 12px;display:flex;gap:8px;align-items:center}
+.slide .top b{background:rgba(255,255,255,.25);border-radius:999px;padding:0 10px}
+.slide .top input{background:rgba(255,255,255,.18);border-color:transparent;color:#fff;font-weight:700}
+.slide .body{padding:12px}
+.slide textarea{min-height:140px}
+.hide{display:none}
+footer{text-align:center;color:var(--muted);font-size:.85rem;padding:0 16px 30px}
+.warn{background:#fff3bf;color:#5c3d00;border-radius:10px;padding:10px 12px;font-size:.92rem}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .warn{background:#4a3b00;color:#ffec99}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✨ LessonSpark</h1>
+  <p>Turn any chapter into a bright, ready-to-teach PowerPoint in minutes. Review, edit, and upload to your ICT portal.</p>
+  <div id="userBar" style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:14px"><span id="hello" style="color:#fff;font-weight:600"></span><div id="gbtn"></div><button id="signOut" style="display:none;padding:6px 12px;background:#fff;color:#5f3dc4">Sign out</button></div>
+</header>
+<main>
+  <section class="card" aria-labelledby="h-check">
+    <h2 id="h-check">Setup check</h2>
+    <ul id="chk" style="list-style:none;padding:0;margin:0"></ul>
+    <div class="row"><button class="ghost" id="recheck">Re-check</button></div>
+  </section>
+  <section class="card" aria-labelledby="h-ai">
+    <h2 id="h-ai">AI setup (free, one time)</h2>
+    <ol class="note" style="padding-left:20px;margin:0 0 10px">
+      <li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> and sign in with your Google account.</li>
+      <li>Create an API key and copy it.</li>
+      <li>Paste it below, press Save, then Test.</li>
+    </ol>
+    <div class="grid">
+      <div><label for="key">Your Gemini API key</label><input id="key" type="password" autocomplete="off" placeholder="Paste key here"></div>
+      <div><label for="model">Model name</label><input id="model" type="text" value="gemini-2.5-flash"></div>
+    </div>
+    <div class="row"><button id="keySave">Save key</button><button class="ghost" id="keyTest">Test key</button><button class="ghost" id="keyDel">Remove key</button></div>
+    <div id="keyMsg" role="status" aria-live="polite" class="note" style="margin-top:8px"></div>
+    <p class="note">The key is saved only in this browser on this device, so don’t use a shared computer. The free Gemini tier may use submitted content to improve Google’s products, so never enter student names, photos, or marks. If the model name stops working, update it from the list in AI Studio.</p>
+  </section>
+  <section class="card" aria-labelledby="h-setup">
+    <h2 id="h-setup">1. Tell us about your lesson</h2>
+    <div class="grid">
+      <div><label for="board">Board</label><select id="board"><option>CBSE</option><option>ICSE</option><option>State Board</option><option>Other</option></select></div>
+      <div><label for="grade">Grade</label><select id="grade"></select></div>
+      <div><label for="subject">Subject</label><select id="subject"><option>Science</option><option>Mathematics</option><option>English</option><option>Social Science</option><option>Computer Science</option><option>Other</option></select></div>
+      <div><label for="slidesN">Number of slides</label><input id="slidesN" type="number" min="5" max="15" value="8"></div>
+    </div>
+    <div class="grid" style="margin-top:14px"><div><label for="chNum">Chapter number (required unless you upload page photos)</label><input id="chNum" type="number" min="1" placeholder="e.g. 3"></div><div><label for="chapter">Chapter name</label><input id="chapter" type="text" placeholder="e.g. Photosynthesis"></div></div>
+    <p class="note">Slides are made for one chapter at a time. For best accuracy paste the chapter text or upload page photos. If you leave both empty, slides are drafted from the standard curriculum and may not match your textbook, so please review them. Searching for the textbook PDF automatically needs the hosted version.</p>
+    <div style="margin-top:14px"><label for="text">Paste chapter text (your own words or the lesson content)</label><textarea id="text" placeholder="Paste the lesson text here…"></textarea></div>
+    <div style="margin-top:14px"><label for="pdf">Textbook PDF (optional, saved on this device)</label><input id="pdf" type="file" accept="application/pdf"><p class="note" id="pdfInfo">No PDF saved.</p><button class="ghost" id="pdfClear" type="button">Remove saved PDF</button><p class="note">While a PDF is saved, it is used for every chapter number you enter. If you upload page photos for a lesson, the photos are used instead.</p></div>
+    <div id="pgBox" class="hide grid" style="margin-top:10px"><div><label for="pgFrom">Chapter first page</label><input id="pgFrom" type="number" min="1"></div><div><label for="pgTo">Chapter last page</label><input id="pgTo" type="number" min="1"></div></div>
+    <div id="photoBox" class="hide" style="margin-top:14px"><label for="photos">Or upload chapter page photos</label><input id="photos" type="file" accept="image/*" multiple><p class="note">Please avoid photos showing student names, faces, or marks.</p></div>
+    <fieldset style="border:0;padding:0;margin:14px 0 0"><legend style="font-weight:600">Include</legend>
+      <div class="checks">
+        <label><input type="checkbox" id="oAct" checked> 🎯 Activity</label>
+        <label><input type="checkbox" id="oQuiz" checked> ❓ Quick quiz</label>
+        <label><input type="checkbox" id="oHome" checked> 📚 Homework</label>
+        <label><input type="checkbox" id="oSum" checked> 📝 Summary</label>
+      </div>
+    </fieldset>
+    <div class="row"><button id="gen">✨ Create my slides</button><span class="note">Works best with a few paragraphs of text.</span></div>
+    <div id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card hide" id="resultCard" aria-labelledby="h-res">
+    <h2 id="h-res">2. Review and edit</h2>
+    <p class="warn">This is an AI-assisted draft. Please check facts, sums, and quiz answers before teaching.</p>
+    <div id="slides" class="slides" style="margin-top:14px"></div>
+    <div class="row">
+      <button id="exp" class="alt">⬇️ Download PowerPoint (.pptx)</button>
+      <button id="add" class="ghost">＋ Add a slide</button>
+      <button id="cp" class="ghost">📋 Copy outline</button>
+    </div>
+    <div id="expStatus" role="status" aria-live="polite" class="note" style="margin-top:8px"></div>
+  </section>
+</main>
+<footer>
+  Please don’t enter student names, photos, or marks. Your lesson text is sent to Google’s Gemini service, using your own key, only to create the draft.<br>
+  <span id="copy"></span>
+  <details style="max-width:680px;margin:10px auto 0;text-align:left"><summary>Terms of use and privacy</summary>
+    <p><b>Terms.</b> LessonSpark is provided as is, to help with lesson preparation. Please review all generated content before using it. You are responsible for having the right to use any textbook or material you upload. You may not copy, resell, or reverse-engineer this app. Slides you create are yours to use in your teaching.</p>
+    <p><b>Privacy.</b> This app has no server of its own and stores nothing about you there. Your Gemini key, saved PDF text, and settings stay in your own browser. If you sign in with Google, only your name and email are read in your browser to greet you. The lesson text you create slides from is sent to Google’s Gemini service with your own key, and the free tier may use it to improve Google’s products. Please do not enter student names, photos, or marks. To delete your data, use Remove key and Remove saved PDF, or clear this site’s data in your browser.</p>
+  </details>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+<script>
+const COLORS=['#d6336c','#e8590c','#0b7285','#5f3dc4','#2b8a3e','#c92a2a','#1864ab'];
+const $=id=>document.getElementById(id);
+let slides=[],aiKey='';
+for(let g=1;g<=12;g++){const o=document.createElement('option');o.textContent='Grade '+g;o.value=g;if(g===7)o.selected=true;$('grade').appendChild(o)}
+function setStatus(m){$('status').textContent=m}
+
+function loadScript(u){return new Promise(r=>{const s=document.createElement('script');s.src=u;s.onload=()=>r(true);s.onerror=()=>r(false);document.head.appendChild(s)})}
+async function loadLib(){
+  if(typeof PptxGenJS!=='undefined')return true;
+  for(const u of ['https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js','https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js']){
+    if(await loadScript(u)&&typeof PptxGenJS!=='undefined')return true;
+  }
+  return false;
+}
+function lsGet(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+async function runChecks(){
+  await loadLib();
+  aiKey=aiKey||lsGet('ls_key');
+  if(lsGet('ls_model'))$('model').value=lsGet('ls_model');
+  $('photoBox').classList.remove('hide');
+  const items=[
+    [typeof PptxGenJS!=='undefined','PowerPoint maker loaded','Both sources failed. School or office Wi-Fi often blocks them: try mobile data, then press Re-check.'],
+    [!!aiKey,'AI key saved','Follow the AI setup steps below to add your free Gemini key. Without it, only a simple outline is made from your text.'],
+    [navigator.onLine,'Internet connection','Connect to the internet and press Re-check.']
+  ];
+  const ul=$('chk');ul.textContent='';
+  items.forEach(([ok,name,fix])=>{const li=document.createElement('li');li.style.margin='6px 0';li.textContent=(ok?'✅ ':'⚠️ ')+name+(ok?'':' – '+fix);ul.appendChild(li)});
+}
+async function gemini(prompt,files){
+  const model=$('model').value.trim()||'gemini-2.5-flash',parts=[{text:prompt}];
+  for(const f of files){const b64=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(f)});parts.push({inline_data:{mime_type:f.type||'image/jpeg',data:b64}})}
+  const resp=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':aiKey},body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:'application/json'}})});
+  if(!resp.ok){const e=new Error('HTTP '+resp.status);e.code=resp.status===429?'rate_limited':(resp.status===400||resp.status===403)?'bad_key':'http_'+resp.status;throw e}
+  const j=await resp.json(),ps=((((j.candidates||[])[0]||{}).content||{}).parts)||[];
+  return JSON.parse(ps.map(p=>p.text||'').join('').replace(/```json|```/g,'').trim());
+}
+runChecks();$('recheck').onclick=runChecks;
+let pdfPages=[];
+const PDFJS='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js',PDFW='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+async function loadPdfLib(){if(window.pdfjsLib)return true;if(!(await loadScript(PDFJS))||!window.pdfjsLib)return false;pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW;return true}
+async function readPdf(file){
+  if(!(await loadPdfLib()))throw new Error('lib');
+  const doc=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise,pages=[];
+  for(let i=1;i<=doc.numPages;i++){const pg=await doc.getPage(i),tc=await pg.getTextContent();pages.push(tc.items.map(x=>x.str).join(' '))}
+  return pages;
+}
+function kv(op,k,v){return new Promise(res=>{try{const q=indexedDB.open('lessonspark',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onerror=()=>res(undefined);q.onsuccess=()=>{try{const t=q.result.transaction('kv',op==='get'?'readonly':'readwrite'),s=t.objectStore('kv'),r=op==='get'?s.get(k):op==='set'?s.put(v,k):s.delete(k);t.oncomplete=()=>res(r.result);t.onerror=()=>res(undefined)}catch(e){res(undefined)}}}catch(e){res(undefined)}})}
+function showPdf(n){$('pdfInfo').textContent=pdfPages.length?'Saved: '+n+' ('+pdfPages.length+' pages). Used for every chapter until you upload page photos or remove it.':'No PDF saved.'}
+function findChapter(n){
+  const a=+$('pgFrom').value,b=+$('pgTo').value;
+  if(a&&b&&b>=a)return [a,Math.min(b,pdfPages.length)];
+  const re=/^\s*(?:chapter|unit|lesson)\s*0*(\d+)\b/i,st=[];
+  pdfPages.forEach((t,i)=>{const m=t.slice(0,200).match(re);if(m)st.push([+m[1],i+1])});
+  const i=st.findIndex(s=>s[0]===+n);
+  if(i<0)return null;
+  const nx=st.slice(i+1).find(s=>s[0]!==+n);
+  return [st[i][1],(nx?nx[1]:pdfPages.length+1)-1];
+}
+$('pdf').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$('pdfInfo').textContent='Reading PDF…';
+  try{const p=await readPdf(f);if(p.join('').trim().length<100){$('pdfInfo').textContent='This PDF looks scanned (no readable text). Upload page photos instead.';return}
+    pdfPages=p;await kv('set','pdf',{name:f.name,pages:p});showPdf(f.name)}
+  catch(err){$('pdfInfo').textContent='Could not read this PDF. The PDF reader may be blocked on your network: try mobile data, or paste the chapter text.'}
+};
+$('pdfClear').onclick=async()=>{pdfPages=[];await kv('del','pdf');$('pdf').value='';$('pgBox').classList.add('hide');showPdf('')};
+(async()=>{const s=await kv('get','pdf');if(s&&s.pages&&s.pages.length){pdfPages=s.pages;showPdf(s.name)}})();
+
+function localDraft(text,chapter){
+  const s=(text.match(/[^.!?\n]+[.!?]?/g)||[]).map(x=>x.trim()).filter(x=>x.length>15);
+  const out=[{title:'Learning Objectives',bullets:['Understand the main ideas of '+(chapter||'this chapter'),'Explain key terms in your own words','Apply what you learn to everyday examples']}];
+  for(let i=0;i<s.length&&out.length<7;i+=3)out.push({title:'Key Idea '+out.length,bullets:s.slice(i,i+3)});
+  return out;
+}
+function extras(){
+  const e=[];
+  if($('oAct').checked)e.push({title:'Activity',bullets:['Work in pairs for 5 minutes','Discuss one example from daily life','Share your answer with the class']});
+  if($('oQuiz').checked)e.push({title:'Quick Quiz',bullets:['Q1. (add question) – Answer: ','Q2. (add question) – Answer: ','Q3. (add question) – Answer: ']});
+  if($('oHome').checked)e.push({title:'Homework',bullets:['Write 5 lines about today’s lesson','Draw and label one diagram']});
+  if($('oSum').checked)e.push({title:'Summary',bullets:['Recap the key ideas','Ask: What did we learn today?']});
+  return e;
+}
+
+$('gen').onclick=async()=>{
+  let chapter=$('chapter').value.trim(),text=$('text').value.trim(),files=[...($('photos').files||[])];
+  const chNum=$('chNum').value.trim();
+  if(!chNum&&!files.length){setStatus('Please enter the chapter number, or upload photos of the chapter pages.');$('chNum').focus();return}
+  if(!files.length&&!text&&pdfPages.length){
+    const rg=findChapter(chNum);
+    if(!rg){setStatus('Could not find chapter '+chNum+' in the PDF. Enter the first and last page of the chapter below, then press Create again.');$('pgBox').classList.remove('hide');$('gen').disabled=false;return}
+    text=pdfPages.slice(rg[0]-1,rg[1]).join('\n').slice(0,9000);
+  }
+  if(!chapter&&!text&&!files.length){setStatus('Please enter the chapter name too, so slides can be drafted from the standard curriculum.');$('chapter').focus();return}
+  $('gen').disabled=true;setStatus('✨ Creating your slides…');
+  const n=Math.min(15,Math.max(5,+$('slidesN').value||8));
+  try{
+    if(aiKey){
+      const want=['Activity','Quick Quiz (3 questions with answers)','Homework','Summary'].filter((_,i)=>[$('oAct'),$('oQuiz'),$('oHome'),$('oSum')][i].checked);
+      const prompt=`You are an experienced school teacher in India. Create about ${n} lesson slides in English for ${$('board').value}, Grade ${$('grade').value}, ${$('subject').value}, chapter ${chNum?chNum+' ':''}"${chapter}". Use simple, age-appropriate language and your own wording; never copy long passages. Slide order: Learning Objectives, then concept slides, then these: ${want.join(', ')||'none'}. Each slide has a short title and 3-5 short bullets (max 15 words each). Base the content on the lesson material below${files.length?' and the attached page photos':''}.\n${text||files.length?'Lesson material:\n"""'+text.slice(0,6000)+'"""':'No textbook text was provided. Use the standard '+$('board').value+' curriculum for this grade, subject and chapter. If you are not sure what this chapter covers, say so on the first slide instead of guessing.'}\nReturn ONLY JSON: {"slides":[{"title":"...","bullets":["..."]}]}`;
+      let r;try{r=await gemini(prompt,files.slice(0,6))}catch(e1){if(files.length&&e1&&e1.code!=='rate_limited'&&e1.code!=='bad_key'){r=await gemini(prompt,[])}else throw e1}
+      slides=(r.slides||[]).map(s=>({title:String(s.title||''),bullets:(s.bullets||[]).map(String)}));
+    }else{slides=[...localDraft(text,chapter),...extras()]}
+    if(!slides.length)throw new Error('empty');
+    render();setStatus(aiKey?'✅ Done! Scroll down to review your slides.':'A simple outline was made. Add your free Gemini key in AI setup for AI-written slides.');
+    $('resultCard').classList.remove('hide');$('resultCard').scrollIntoView({behavior:'smooth'});
+  }catch(e){
+    slides=[...localDraft(text,chapter),...extras()];
+    if(slides.length){render();$('resultCard').classList.remove('hide');setStatus('AI could not run'+(e&&(e.code||e.message)?' ('+(e.code||e.message)+')':'')+(e&&e.code==='bad_key'?' – check your key and model name in AI setup.':e&&e.code==='rate_limited'?' – the free limit is reached. Wait a minute or try tomorrow.':'. Try fewer slides or shorter text.')+' A simple outline was made instead; you can edit every slide.')}
+    else setStatus('Sorry, that did not work. Please add more lesson text and try again.');
+  }
+  $('gen').disabled=false;
+};
+
+function render(){
+  const box=$('slides');box.textContent='';
+  slides.forEach((s,i)=>{
+    const c=COLORS[i%COLORS.length],d=document.createElement('div');d.className='slide';
+    d.innerHTML=`<div class="top" style="background:${c}"><b>${i+1}</b><input type="text" aria-label="Slide ${i+1} title"><button class="ghost" style="color:#fff;border-color:#fff;padding:4px 10px" aria-label="Delete slide ${i+1}">✕</button></div><div class="body"><textarea aria-label="Slide ${i+1} bullet points, one per line"></textarea></div>`;
+    const t=d.querySelector('input'),a=d.querySelector('textarea');
+    t.value=s.title;a.value=s.bullets.join('\n');
+    t.oninput=()=>s.title=t.value;
+    a.oninput=()=>s.bullets=a.value.split('\n').filter(x=>x.trim());
+    d.querySelector('button').onclick=()=>{slides.splice(i,1);render()};
+    box.appendChild(d);
+  });
+}
+$('add').onclick=()=>{slides.push({title:'New slide',bullets:['Add your point here']});render()};
+$('cp').onclick=async()=>{const txt=slides.map((s,i)=>(i+1)+'. '+s.title+'\n'+s.bullets.map(b=>'   • '+b).join('\n')).join('\n\n');try{await navigator.clipboard.writeText(txt);$('expStatus').textContent='Outline copied. Paste it into PowerPoint or Word.'}catch(e){$('expStatus').textContent='Could not copy automatically. Select the text in the slides and copy it.'}};
+
+$('exp').onclick=async()=>{
+  const st=$('expStatus');
+  await loadLib();if(typeof PptxGenJS==='undefined'){st.textContent='PowerPoint maker could not load (your network may block it). Try mobile data, then press Re-check at the top.';return}
+  const p=new PptxGenJS();p.layout='LAYOUT_16x9';p.title=$('chapter').value||'Lesson';
+  const t=p.addSlide();t.background={color:'5F3DC4'};
+  t.addText(($('chNum').value?'Chapter '+$('chNum').value+': ':'')+($('chapter').value||'Lesson'),{x:.6,y:1.6,w:8.8,h:1.3,fontSize:40,bold:true,color:'FFFFFF',fontFace:'Arial'});
+  t.addText(`${$('subject').value} · Grade ${$('grade').value} · ${$('board').value}`,{x:.6,y:3,w:8.8,h:.6,fontSize:20,color:'FFE066',fontFace:'Arial'});
+  slides.forEach((s,i)=>{
+    const c=COLORS[i%COLORS.length].slice(1),sl=p.addSlide();sl.background={color:'FFF8EE'};
+    sl.addShape(p.ShapeType.rect,{x:0,y:0,w:10,h:1.1,fill:{color:c}});
+    sl.addText(s.title||'Slide',{x:.5,y:.1,w:9,h:.9,fontSize:30,bold:true,color:'FFFFFF',fontFace:'Arial'});
+    sl.addText(s.bullets.map(b=>({text:b,options:{bullet:true,breakLine:true}})),{x:.6,y:1.4,w:8.8,h:3.8,fontSize:22,color:'2B2D42',fontFace:'Arial',valign:'top',paraSpaceAfter:10});
+  });
+  try{
+    const blob=await p.write({outputType:'blob'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=(($('chapter').value||'lesson').replace(/[^\w-]+/g,'_'))+'.pptx';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+    st.textContent='Downloaded! Upload the file to your ICT portal.';
+  }catch(e){st.textContent='Could not create the file. Please try again.'}
+};
+$('keySave').onclick=()=>{const k=$('key').value.trim();if(!k){$('keyMsg').textContent='Paste your key first.';return}aiKey=k;const ok=lsSet('ls_key',k);lsSet('ls_model',$('model').value.trim());$('key').value='';$('keyMsg').textContent=ok?'Key saved on this device.':'This browser blocked saving, so the key works for this visit only.';runChecks()};
+$('keyTest').onclick=async()=>{if(!aiKey){$('keyMsg').textContent='Save a key first.';return}$('keyMsg').textContent='Testing…';try{await gemini('Reply with this JSON only: {"ok":true}',[]);$('keyMsg').textContent='✅ Key works.'}catch(e){$('keyMsg').textContent='⚠️ '+(e.code==='bad_key'?'Key or model name not accepted. Check both.':e.code==='rate_limited'?'Key works, but the free limit is reached for now.':e.code==='http_404'?'Model name not found. Check it in AI Studio.':'Could not reach Gemini ('+(e.message||'error')+'). Your network may block it.')}};
+$('keyDel').onclick=()=>{aiKey='';lsDel('ls_key');$('keyMsg').textContent='Key removed.';runChecks()};
+const OWNER='Your Name',GOOGLE_CLIENT_ID='';
+$('copy').textContent='© '+new Date().getFullYear()+' '+OWNER+'. All rights reserved.';
+function jwt(t){try{return JSON.parse(decodeURIComponent(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')).split('').map(c=>'%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)).join('')))}catch(e){return null}}
+function showUser(u){$('hello').textContent=u?'Hi, '+(u.name||u.email):'';$('signOut').style.display=u?'':'none';$('gbtn').style.display=u?'none':''}
+function onGoogle(r){const p=jwt(r.credential);if(!p)return;const u={name:p.name,email:p.email};lsSet('ls_user',JSON.stringify(u));showUser(u)}
+$('signOut').onclick=()=>{lsDel('ls_user');try{google.accounts.id.disableAutoSelect()}catch(e){}showUser(null)};
+(function(){
+  let u=null;try{u=JSON.parse(lsGet('ls_user')||'null')}catch(e){}
+  showUser(u);
+  if(!GOOGLE_CLIENT_ID){if(!u)$('hello').textContent='Guest mode \u00b7 Google sign-in is not set up yet';return}
+  const sc=document.createElement('script');sc.src='https://accounts.google.com/gsi/client';sc.async=true;
+  sc.onload=()=>{google.accounts.id.initialize({client_id:GOOGLE_CLIENT_ID,callback:onGoogle});google.accounts.id.renderButton($('gbtn'),{theme:'outline',size:'medium',text:'signin_with'})};
+  sc.onerror=()=>{if(!u)$('hello').textContent='Google sign-in could not load on this network'};
+  document.head.appendChild(sc);
+})();
+</script>
+</body>
+</html>
